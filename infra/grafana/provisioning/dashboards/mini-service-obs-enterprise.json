@@ -1,0 +1,538 @@
+{
+  "id": null,
+  "uid": "mini-service-obs-enterprise",
+  "title": "Mini Service Observability (eto + OTEL) - Enterprise",
+  "tags": ["mini-service", "otelgo", "eto", "enterprise"],
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "timezone": "",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "Loki Errors",
+        "type": "tags",
+        "enable": true,
+        "iconColor": "rgba(255, 0, 0, 1)",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "expr": "{service_name=\"mini-service-api\", level=\"error\"}",
+        "titleFormat": "Error log",
+        "textFormat": "{{message}}",
+        "useExpr": true,
+        "hide": false
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "route",
+        "type": "query",
+        "label": "HTTP Route",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(http_server_requests_total, route)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0
+      },
+      {
+        "name": "method",
+        "type": "query",
+        "label": "HTTP Method",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(http_server_requests_total, method)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0
+      },
+      {
+        "name": "result",
+        "type": "query",
+        "label": "Result",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": "label_values(http_server_requests_total, result)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "SLO Overview",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Global RPS (last 5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Global Error Rate (%)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_server_requests_total{result!=\"success\"}[5m])) / sum(rate(http_server_requests_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "area",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "HTTP Latency P95 (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_ms_milliseconds_bucket[5m])))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "HTTP Latency P99 (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_ms_milliseconds_bucket[5m])))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+
+    {
+      "id": 10,
+      "type": "row",
+      "title": "HTTP Per Route",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "HTTP RPS by Route & Result",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum by (route, result) (rate(http_server_requests_total{route=~\"$route\", method=~\"$method\", result=~\"$result\"}[5m]))",
+          "legendFormat": "{{route}} ({{result}})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "HTTP Latency P95 per Route (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (route, le) (rate(http_server_request_duration_ms_milliseconds_bucket{route=~\"$route\"}[5m])))",
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "HTTP Route Summary (last 5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "targets": [
+        {
+          "expr": "sum by (route, method, result) (increase(http_server_requests_total[5m]))",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Auth Business Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Login Attempts by Result",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "targets": [
+        {
+          "expr": "sum by (result) (rate(auth_login_attempts_total[5m]))",
+          "legendFormat": "{{result}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Login Success vs Password Fail",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_login_success_total[5m]))",
+          "legendFormat": "success",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(auth_login_password_check_fail_total[5m]))",
+          "legendFormat": "password_fail",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "Login Success Rate (%)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 31 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(auth_login_success_total[5m])) / sum(rate(auth_login_attempts_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "horizontal",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 80 },
+            { "color": "green", "value": 95 }
+          ]
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Login DB Lookup P95 Latency (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 31 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(auth_login_db_lookup_latency_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "db_lookup_p95",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "hidden", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Logout / Refresh / Profile RPS",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 31 },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_logout_total[5m]))",
+          "legendFormat": "logout",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(auth_refresh_token_total[5m]))",
+          "legendFormat": "refresh_token",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(auth_profile_total[5m]))",
+          "legendFormat": "profile",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+
+    {
+      "id": 30,
+      "type": "row",
+      "title": "Infra / OTEL Pipeline Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 }
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "OTel Collector Scrape (Prometheus up)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 40 },
+      "targets": [
+        {
+          "expr": "up{job=\"otel-collector\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Tempo / Loki / Alloy up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 40 },
+      "targets": [
+        {
+          "expr": "up{job=\"tempo\"}",
+          "legendFormat": "tempo",
+          "refId": "A"
+        },
+        {
+          "expr": "up{job=\"loki\"}",
+          "legendFormat": "loki",
+          "refId": "B"
+        },
+        {
+          "expr": "up{job=\"alloy\"}",
+          "legendFormat": "alloy",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "type": "timeseries",
+      "title": "HTTP Request Duration Histogram Heatmap (ms)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 40 },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "heatmap",
+            "lineInterpolation": "linear"
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (le) (rate(http_server_request_duration_ms_milliseconds_bucket[5m]))",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 40,
+      "type": "row",
+      "title": "Logs & Traces",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 46 }
+    },
+    {
+      "id": 41,
+      "type": "logs",
+      "title": "Service Logs (mini-service-api)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": { "h": 10, "w": 14, "x": 0, "y": 47 },
+      "targets": [
+        {
+          "expr": "{service_name=\"mini-service-api\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showLabels": true,
+        "showTime": true
+      }
+    },
+    {
+      "id": 42,
+      "type": "logs",
+      "title": "Error Logs Only",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": { "h": 10, "w": 10, "x": 14, "y": 47 },
+      "targets": [
+        {
+          "expr": "{service_name=\"mini-service-api\", level=\"error\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showLabels": true,
+        "showTime": true
+      }
+    },
+    {
+      "id": 43,
+      "type": "traces",
+      "title": "Recent Traces (Tempo)",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 57 },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{service.name=\"mini-service-api\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showSpanBar": true
+      }
+    }
+  ]
+}

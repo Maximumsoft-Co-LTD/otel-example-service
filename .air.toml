@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -buildvcs=false -o ./tmp/app ./_cmd"
+bin = "tmp/app"
+full_bin = "APP_ENV=dev ./tmp/app"
+
+include_ext = ["go", "mod", "sum"]
+exclude_dir = ["vendor", "tmp", "infra"]
+
+[log]
+level = "debug"

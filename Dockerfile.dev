@@ -1,0 +1,27 @@
+FROM golang:1.25.4-alpine
+
+RUN apk add --no-cache git bash build-base curl \
+  && go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+ARG GITHUB_TOKEN
+
+ENV GOPRIVATE=github.com/Maximumsoft-Co-LTD/*
+
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+      git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"; \
+    fi
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ENV TZ=Asia/Bangkok
+RUN apk add --no-cache tzdata \
+  && ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".air.toml"]
